@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Amigo Secreto</title>
+<style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    input, button { padding: 10px; font-size: 16px; margin-top: 10px; }
+    .box { margin-top: 20px; }
+</style>
+</head>
+<body>
+
+<h2>Sorteio Amigo Secreto</h2>
+
+<label>Digite seu nome:</label><br>
+<input id="meuNome" placeholder="Seu nome aqui" /><br>
+
+<button onclick="sortear()">Sortear</button>
+
+<div class="box">
+    <h3 id="resultado"></h3>
+</div>
+
+<script>
+    // LISTA DE PARTICIPANTES — modifique conforme quiser
+    let participantes = ["Gabriela", "Magna", "Gisele"];
+    
+    // Guarda quem já foi sorteado
+    let jaSorteados = [];
+
+    function sortear() {
+        const meuNome = document.getElementById("meuNome").value.trim();
+        const resultado = document.getElementById("resultado");
+
+        if (!meuNome) {
+            resultado.textContent = "Por favor, digite seu nome!";
+            return;
+        }
+
+        if (!participantes.includes(meuNome)) {
+            resultado.textContent = "Esse nome não está na lista de participantes!";
+            return;
+        }
+
+        // Cria lista de possíveis nomes (sem o próprio nome e sem repetidos)
+        let possiveis = participantes.filter(p => p !== meuNome && !jaSorteados.includes(p));
+
+        if (possiveis.length === 0) {
+            resultado.textContent = "Não há mais pessoas disponíveis para serem sorteadas!";
+            return;
+        }
+
+        // Sorteia alguém aleatório
+        let sorteado = possiveis[Math.floor(Math.random() * possiveis.length)];
+
+        // Marca como sorteado globalmente
+        jaSorteados.push(sorteado);
+
+        resultado.textContent = `Você tirou: ${sorteado}`;
+    }
+</script>
+
+</body>
+</html>
