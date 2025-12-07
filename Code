@@ -1,65 +1,223 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
-<meta charset="UTF-8">
-<title>Amigo Secreto</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1"> 
+<title>Amigo Secreto de Natal</title>
 <style>
-    body { font-family: Arial, sans-serif; padding: 20px; }
-    input, button { padding: 10px; font-size: 16px; margin-top: 10px; }
-    .box { margin-top: 20px; }
+  :root{
+    --card-bg: rgba(255,255,255,0.95);
+    --accent: #c91818;
+    --accent-dark: #9f1010;
+    --green: #0b6b2a;
+  }
+  html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  body{
+    background: linear-gradient(180deg,#05233b 0%, #083a4d 60%);
+    display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;overflow:hidden
+  }
+
+  /* background illustration (subtle wreath) */
+  .bg-ornament{
+    position:fixed;inset:0;pointer-events:none;opacity:.12;background-image:url('https://i.imgur.com/0ZfL4Jw.jpeg');background-size:cover;background-position:center;filter:blur(4px) saturate(.9);
+  }
+
+  .container{
+    width:100%;max-width:420px;padding:18px;border-radius:18px;background:var(--card-bg);box-shadow:0 10px 30px rgba(2,8,23,0.45);backdrop-filter:blur(6px);position:relative;z-index:2;
+    box-sizing:border-box;display:flex;flex-direction:column;align-items:stretch;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  header{display:flex;align-items:center;gap:12px}
+  .logo{
+    width:56px;height:56px;border-radius:12px;background:linear-gradient(180deg,var(--accent),var(--accent-dark));display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:22px;box-shadow:0 6px 18px rgba(201,24,24,0.25)
+  }
+  h1{font-size:18px;margin:0;color:var(--accent-dark);letter-spacing:.2px}
+  p.lead{margin:6px 0 14px;color:#334;opacity:.9;font-size:13px}
+
+  label{font-size:13px;color:#333}
+  input#nome{width:100%;padding:14px;border-radius:12px;border:1px solid #e1e1e1;font-size:16px;box-sizing:border-box;margin-top:8px}
+
+  .controls{display:flex;gap:10px;margin-top:12px}
+  button{flex:1;padding:12px;border-radius:12px;border:none;font-size:16px;background:var(--accent);color:white;font-weight:600;cursor:pointer;box-shadow:0 6px 14px rgba(201,24,24,0.18);transition:transform .12s ease,filter .12s}
+  button.secondary{background:#f5f5f5;color:#333;box-shadow:none;border:1px solid #e6e6e6}
+  button:active{transform:translateY(1px)}
+
+  #resultado{margin-top:16px;padding:12px;border-radius:10px;background:linear-gradient(90deg,rgba(11,107,42,0.08),rgba(11,107,42,0.03));color:var(--green);font-weight:700;text-align:center}
+
+  .meta{display:flex;justify-content:space-between;align-items:center;margin-top:12px;font-size:12px;color:#666}
+
+  /* make it mobile friendly */
+  @media (max-width:420px){
+    .container{padding:16px;border-radius:16px}
+    .logo{width:48px;height:48px}
+    h1{font-size:16px}
+    input#nome{padding:12px}
+    button{padding:14px;font-size:16px}
+  }
+
+  /* snow canvas sits behind the container but above background ornament */
+  canvas#snow {
+    position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:1
+  }
+
+  /* reduce motion preference */
+  @media (prefers-reduced-motion: reduce){
+    canvas#snow{display:none}
+  }
 </style>
 </head>
 <body>
+  <div class="bg-ornament" aria-hidden="true"></div>
+  <canvas id="snow" aria-hidden="true"></canvas>
 
-<h2>Sorteio Amigo Secreto</h2>
+  <div class="container" role="application" aria-label="Sorteio de Amigo Secreto">
+    <header>
+      <div class="logo">🎁</div>
+      <div>
+        <h1>Amigo Secreto de Natal</h1>
+        <p class="lead">Digite seu nome e clique em <strong>Sortear</strong> — o app não permite que você tire o próprio nome.</p>
+      </div>
+    </header>
 
-<label>Digite seu nome:</label><br>
-<input id="meuNome" placeholder="Seu nome aqui" /><br>
+    <label for="nome">Seu nome</label>
+    <input id="nome" name="nome" inputmode="text" autocomplete="name" placeholder="Ex: Gisele" aria-label="Digite seu nome" />
 
-<button onclick="sortear()">Sortear</button>
+    <div class="controls">
+      <button id="btnSortear" aria-label="Sortear">Sortear 🎄</button>
+      <button id="btnReset" class="secondary" aria-label="Reiniciar">Reiniciar 🔁</button>
+    </div>
 
-<div class="box">
-    <h3 id="resultado"></h3>
-</div>
+    <div id="resultado" role="status" aria-live="polite"></div>
+
+    <div class="meta">
+      <span id="restantes">Participantes restantes: 0</span>
+      <span id="total">Total: 0</span>
+    </div>
+  </div>
 
 <script>
-    // LISTA DE PARTICIPANTES — modifique conforme quiser
-    let participantes = ["Gabriela", "Magna", "Gisele"];
-    
-    // Guarda quem já foi sorteado
-    let jaSorteados = [];
+// ====== PARTICIPANTES - Edite a lista aqui ======
+const participantes = ["Ana","Bruno","Carlos","Gisele","Rafaela","Marcos","Julia","Pedro"];
+// ==============================================
 
-    function sortear() {
-        const meuNome = document.getElementById("meuNome").value.trim();
-        const resultado = document.getElementById("resultado");
+let jaSorteados = new Set();
 
-        if (!meuNome) {
-            resultado.textContent = "Por favor, digite seu nome!";
-            return;
-        }
+const nomeInput = document.getElementById('nome');
+const resultadoEl = document.getElementById('resultado');
+const btnSortear = document.getElementById('btnSortear');
+const btnReset = document.getElementById('btnReset');
+const restantesEl = document.getElementById('restantes');
+const totalEl = document.getElementById('total');
 
-        if (!participantes.includes(meuNome)) {
-            resultado.textContent = "Esse nome não está na lista de participantes!";
-            return;
-        }
+function atualizarMeta(){
+  const restantes = participantes.length - jaSorteados.size;
+  restantesEl.textContent = `Participantes restantes: ${restantes}`;
+  totalEl.textContent = `Total: ${participantes.length}`;
+}
 
-        // Cria lista de possíveis nomes (sem o próprio nome e sem repetidos)
-        let possiveis = participantes.filter(p => p !== meuNome && !jaSorteados.includes(p));
+function sortear(){
+  const nomeUsuario = nomeInput.value.trim();
+  if(!nomeUsuario){ resultadoEl.textContent = 'Digite seu nome.'; return; }
+  if(!participantes.includes(nomeUsuario)) { resultadoEl.textContent = 'Nome não encontrado na lista.'; return; }
 
-        if (possiveis.length === 0) {
-            resultado.textContent = "Não há mais pessoas disponíveis para serem sorteadas!";
-            return;
-        }
+  const disponiveis = participantes.filter(n => n !== nomeUsuario && !jaSorteados.has(n));
+  if(disponiveis.length === 0){ resultadoEl.textContent = 'Não há mais nomes disponíveis para sortear.'; return; }
 
-        // Sorteia alguém aleatório
-        let sorteado = possiveis[Math.floor(Math.random() * possiveis.length)];
-
-        // Marca como sorteado globalmente
-        jaSorteados.push(sorteado);
-
-        resultado.textContent = `Você tirou: ${sorteado}`;
+  // animação de suspense (simples)
+  btnSortear.disabled = true;
+  let ticks = 18; // número de 'passadas' rápidas
+  let i = 0;
+  const interval = setInterval(()=>{
+    const fake = disponiveis[Math.floor(Math.random()*disponiveis.length)];
+    resultadoEl.textContent = `Sortendo... ${fake}`;
+    i++;
+    if(i>=ticks){
+      clearInterval(interval);
+      const escolhido = disponiveis[Math.floor(Math.random()*disponiveis.length)];
+      jaSorteados.add(escolhido);
+      resultadoEl.textContent = `Você tirou: 🎁 ${escolhido} 🎁`;
+      btnSortear.disabled = false;
+      atualizarMeta();
     }
-</script>
+  }, 70);
+}
 
+function resetar(){
+  jaSorteados.clear();
+  resultadoEl.textContent = '';
+  nomeInput.value = '';
+  atualizarMeta();
+}
+
+btnSortear.addEventListener('click', sortear);
+btnReset.addEventListener('click', resetar);
+
+// accessibility: also allow Enter key to trigger
+nomeInput.addEventListener('keydown', (e)=>{ if(e.key === 'Enter') sortear(); });
+
+// init
+atualizarMeta();
+
+// ====== SNOW CANVAS ======
+(function(){
+  if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const canvas = document.getElementById('snow');
+  const ctx = canvas.getContext('2d');
+  let W = canvas.width = window.innerWidth;
+  let H = canvas.height = window.innerHeight;
+  const DPR = Math.max(1, window.devicePixelRatio || 1);
+  canvas.width = W * DPR; canvas.height = H * DPR; canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+  ctx.scale(DPR, DPR);
+
+  let flakes = [];
+  const FLAKE_COUNT = Math.min(120, Math.floor(W/6)); // scale with width, cap for perf
+
+  function initFlakes(){
+    flakes = [];
+    for(let i=0;i<FLAKE_COUNT;i++){
+      flakes.push({
+        x: Math.random()*W,
+        y: Math.random()*H - H,
+        r: 1 + Math.random()*4,
+        d: Math.random()*FLAKE_COUNT,
+        vx: (Math.random()*0.6)-0.3,
+        vy: 0.5 + Math.random()*1.2
+n      });
+    }
+  }
+
+  function update(){
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    for(let i=0;i<flakes.length;i++){
+      const f = flakes[i];
+      ctx.beginPath();
+      ctx.arc(f.x, f.y, f.r, 0, Math.PI*2);
+      ctx.fill();
+      f.x += f.vx + Math.sin((f.d + Date.now()/600) / 10) * 0.6;
+      f.y += f.vy;
+      if(f.y > H + 10){ f.y = -10; f.x = Math.random()*W; }
+    }
+    requestAnimationFrame(update);
+  }
+
+  function onResize(){
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+    canvas.width = W * DPR; canvas.height = H * DPR; canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+    initFlakes();
+  }
+
+  window.addEventListener('resize', debounce(onResize, 120));
+  initFlakes();
+  update();
+
+  // small debounce
+  function debounce(fn, wait){let t;return (...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),wait)}}
+})();
+
+</script>
 </body>
 </html>
